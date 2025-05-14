@@ -1,0 +1,122 @@
+
+--EXAMEN--
+
+1. Recupera los nombres, apellidos y fecha de nacimiento de los empleados nacidos en enero de 1981 e que vivan en la provincia de Cuenca. 
+
+db.emps.find(
+  {
+    $and: [
+      { data_nac: { $gte: new Date("1981-01-01"), $lte: new Date("1981-01-31") } },
+      { "enderezo.provincia": "Cuenca" }
+    ]
+  },
+  {
+    _id: 0,
+    nome: 1,
+    apelidos: 1,
+    data_nac: 1
+  }
+)
+
+
+2. Obtén un listado de los empleados que, o bien tienen un contrato Temporal o Indefinido, o tienen entre 2 y 4 hijos (ambos inclusive).
+
+Muestra el nombre, apellidos y número de hijos, pero sólo de los 10 primeros empleados por orden alfabética de apellidos y nombre.
+
+db.emps.find(
+  {
+    $or: [
+      { contrato: { $in: ["Temporal", "Indefinido"] } },
+      { num_fillos: { $gte: 2, $lte: 4 } }
+    ]
+  },
+  {
+    _id: 0,
+    nome: 1,
+    apelidos: 1,
+    num_fillos: 1
+  }
+).sort({ apelidos: 1, nome: 1 }).limit(10)
+
+
+3. Para cada comunidad autónoma donde trabajen menos de 20 empleados, obtén un listado con el nombre de la comunidad, el número de empleaados, el conjunto con los nombres de pila de los empleados, y la suma de sus salarios.
+
+db.emps.aggregate([
+  {$lookup:{
+    from: "provincias", localField: "enderezo.provincia", foreignField: "_id", as: "provs"
+  }},
+  { $unwind: "$provs" },
+  {
+    $group: {
+      _id: "$provs.comunidade",
+      totalEmpleados: { $sum: 1 },
+      nomes: { $addToSet: "$nome" },
+      salarioTotal: { $sum: "$salario" }
+    }
+  },
+  {
+    $match: {
+      totalEmpleados: { $lt: 20 }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      comunidade: "$_id",
+      totalEmpleados: 1,
+      nomes: 1,
+      salarioTotal: 1
+    }
+  }
+])
+
+
+4. Considerando sólo los empleados que trabajen en provincias con una superficie mayor de 15.000, obtén un listado donde aparezca, para cada tipo de contrato, cuántos empleados hay, y la lista con los nombres de las comunidades autónomas donde están esos empleados (sin duplicados).
+
+Los documentos de salida deben tener los nombres de campos como en este ejemplo (no son datos reales de la salida de la consulta):
+
+{ 
+  "tipo_contrato" : "Temporal",
+  "num_emps" : 213,
+  "comunidades" : ['Galicia','Asturias']
+}
+
+
+db.emps.aggregate([
+  {
+    $lookup: {
+      from: "provincias",
+      localField: "enderezo.provincia",
+      foreignField: "_id",
+      as: "prov"
+    }
+  },
+  { $unwind: "$prov" },
+  {
+    $match: {
+      "prov.superficie": { $gt: 15000 }
+    }
+  },
+  {
+    $group: {
+      _id: "$contrato",
+      num_emps: { $sum: 1 },
+      comunidades: { $addToSet: "$prov.comunidade" }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      tipo_contrato: "$_id",
+      num_emps: 1,
+      comunidades: 1
+    }
+  }
+])
+
+
+
+
+
+
+

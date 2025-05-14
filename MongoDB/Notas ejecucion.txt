@@ -1,0 +1,241 @@
+start /b mongod.exe --port 27017 --dbpath c:\Software_Universidad\MAI\datos --logpath c:\Software_Universidad\MAI\mongod.log
+
+mongosh
+
+--6--
+show databases
+use mai
+show tables
+
+--7--
+insertar: db.proba.insertOne({a:1}) o db.proba.insertOne({_id: 'b', valor: 2})
+buscar: db.proba.find()
+
+--8--
+db.test.find()
+
+--9--
+fuera de mongosh: 
+mongoimport -d examen -c provincias --type=CSV --headerline C:/Software_Universidad/MAI/ficheros/provincias_gl.csv
+mongoimport -d examen -c contactos C:/Software_Universidad/MAI/ficheros/contactos_gl.json
+mongoimport -d examen -c emps C:/Software_Universidad/MAI/ficheros/emps_gl.json
+
+--10--
+igual q el 6
+
+--11--
+db.emps.find({num_fillos: 1})
+
+--12--
+db.emps.find({salario: {$gt:20000}})
+
+--13--
+db.emps.find({data_nac:{$gte: new Date("1982-01-01"), $lte: new Date("1982-12-31")}},{_id:0, nome:1, apelidos:1, data_nac:1})
+
+--14--
+db.emps.find({estado_civil: "Solteiro/a"}, {_id:0, nome:1, apelidos:1})
+
+--15--
+db.emps.find({estado_civil: "Solteiro/a", num_fillos: 1}, {_id:0, nome:1, apelidos:1})
+
+--16--
+db.emps.find({$or:[{estado_civil: "Casado/a"},{num_fillos: 1}]}, {_id:0, nome:1, apelidos:1, estado_civil:1, num_fillos:1})
+
+--17--
+db.emps.find({$or:[{salario: {$lt:20000}},{$and:[{estado_civil: "Casado/a"}, {num_fillos: {$gte:3}}]}]}, {_id:0, nome:1, apelidos:1, estado_civil:1, num_fillos:1, salario:1})
+
+--18--
+db.emps.find({estado_civil: {$not:/^Viúv/}})
+
+--19--
+db.emps.find({num_fillos: {$not:{$gt:3}}}) 		// incluye nulls o valores mal tipados (todo lo q NO este)
+db.emps.find({num_fillos: {$lte:3}})
+
+--20--
+db.emps.find({"enderezo.provincia":"Lugo"})
+
+--21--
+db.emps.find({"enderezo.provincia":/^A/})
+
+--22--
+db.emps.find({num_fillos: {$in:[1,3]}})
+
+--23--
+db.emps.find({hobbies: "lectura"}, {_id:0, nome:1, apelidos:1, hobbies:1})
+
+--24--
+db.emps.find({"hobbies.0": "lectura"}, {_id:0, nome:1, apelidos:1, hobbies:1})
+
+--25--
+db.emps.find({hobbies: {$in:["lectura","durmir"]}}, {_id:0, nome:1, apelidos:1, hobbies:1})
+
+--26--
+db.emps.find({$and:[{hobbies:"lectura"}, {hobbies:"durmir"}]},{_id:0, nome:1, apelidos:1, hobbies:1})
+
+--27--
+db.emps.find({num_fillos: {$not:{$in:[1,3]}}})
+
+--28--
+db.emps.find({contrato: "Indefinido"}).count()
+
+--29--
+db.emps.find({contrato: "Temporal"}, {nome:1, apelidos:1, salario:1}).sort({salario:1})
+
+--30--
+db.emps.find({contrato: "Temporal"}, {nome:1, apelidos:1, salario:1}).sort({salario:-1, apelidos:1, nome:1})
+
+--31--
+db.emps.find({data_nac: {$ne: null}}).sort({data_nac:1}).limit(4)
+
+--32--
+db.emps.find({num_fillos: {$gt:1}, dni: /A$/}, {nome:1, apelidos:1, dni:1, num_fillos:1}).sort({apelidos:1, nome:1}).skip(5).limit(2)
+
+--33--
+db.emps.find({nome: "Osvaldo", apelidos: "Sánchez Hernández"})
+db.emps.updateOne({nome: "Osvaldo", apelidos: "Sánchez Hernández"}, {$set:{num_fillos:2, telefono:"620691338", fax:"973100100"}})
+
+--34--
+db.emps.updateOne({dni: "10000000Z"}, {$inc:{num_fillos:1}})
+
+--35--
+db.emps.updateOne({dni:"99004348C"}, {$unset:{num_fillos:""}})
+
+--36--
+db.emps.updateMany({dni: {$in:["99004348C", "95991061D"]}}, {$inc:{num_fillos:1}})
+
+--37--
+db.emps.updateMany({contrato: "Temporal", num_fillos: {$gt:3}}, {$inc:{salario:2000}})
+
+--38--
+db.emps.updateOne({dni:"12345678Z"},{$set:{nome:"Antón", apelidos: "Pérez Pérez", enderezo: {rua: "Ronda de Outeiro, 3", localidade: "A Coruña", provincia: "A Coruña"}}}, {upsert:true})
+
+--39--
+db.emps.updateMany({contrato: "Por obra"}, {$set: {contrato: "Por obra ou servizo"}})
+
+--40--
+db.emps.updateMany({num_fillos: {$gte:1}}, {$push: {hobbies: "coidar da prole"}})
+
+--41--
+db.emps.updateMany({$and:[{hobbies:"bailar"},{hobbies:{$not:/música/}}]}, {$push: {hobbies: "música"}})
+
+--42--
+db.emps.updateMany({num_fillos: {$gte:1}}, {$pull: {hobbies: "coidar da prole"}})
+
+--43--
+db.emps.updateMany({salario: {$lt:10000}}, {$mul: {salario: 1.07}})
+
+--44--
+db.emps.mapReduce(
+	function(){
+		emit(this.contrato, this.salario)
+	}, 
+	function(key, values) {
+		return Array.sum(values)
+	}, 
+	{
+		out:{inline:1}, 
+		query:{contrato:{$exists:true}}
+	}
+)
+
+--45--
+db.emps.mapReduce(
+	function(){
+		emit(this.contrato?this.contrato:"Descoñecido", this.salario?this.salario:0)
+	}, 
+	function(key, values) {
+		return Array.sum(values)
+	}, 
+	{
+		out:"contratos"
+	}
+)
+
+--46--
+db.contratos.find()
+
+--47--
+db.contratos.deleteOne({_id:"Indefinido"})
+
+--48--
+db.contratos.drop()
+
+--49--
+db.emps.aggregate([{$group:{_id:"$contrato", total: {$sum: "$salario"}}}])
+db.emps.aggregate([{$match:{contrato: {$exists:true}}}, {$group:{_id:"$contrato", total: {$sum: "$salario"}}}])
+
+--50--
+db.emps.mapReduce(
+	function(){
+		emit(this.enderezo.provincia, this.num_fillos)
+	},
+	function(key, values){
+		return Array.sum(values)
+	},
+	{
+		out:{inline:1}, 
+		query:{"enderezo.provincia":{$in:["Lugo", "Valencia"]}}
+	}
+)
+
+--51--
+db.emps.aggregate([{$match:{"enderezo.provincia":{$in:["Lugo", "Valencia"]}}}, {$group:{_id:"$enderezo.provincia", total: {$sum: "$num_fillos"}}}])
+
+--52--
+db.emps.aggregate([{$match:{contrato: {$exists:true}}}, {$group:{_id:"$enderezo.provincia", total: {$sum: "$num_fillos"}}}])
+
+db.emps.aggregate([{$match:{$and:[{"enderezo.provincia":{$in:["Lugo", "Valencia"]}}, {contrato: {$exists:true}}]}}, {$group:{_id:"$enderezo.provincia", total: {$sum: "$num_fillos"}}}])
+
+--53--
+db.emps.aggregate([{$match:{contrato: {$exists:true}}}, {$group:{_id:"$enderezo.provincia", total: {$sum: "$num_fillos"}}},  {$match:{total:{$gt:300}}}])
+
+--54--
+db.emps.aggregate([{$match:{contrato: {$exists:true}}}, {$group:{_id:"$enderezo.provincia", total: {$sum: "$num_fillos"}}}, {$match:{total:{$gt:300}}}, {$project: {_id:0, provincia:"$_id", total:1}}])
+
+--55--
+db.emps.aggregate([{$group: {_id:"$enderezo.provincia", contratos:{$addToSet:"$contrato"}}}]).count()
+
+--56--
+db.emps.aggregate([{$group: {_id:"$enderezo.provincia", contratos:{$push:"$contrato"}}}])
+
+--57--
+db.emps.aggregate([{$unwind:"$hobbies"}, {$group: {_id:"$hobbies", num_persoas: {$count:{}}}}])
+
+--58--
+db.emps.aggregate([{$unwind:"$hobbies"}, {$group:{_id:"$_id", h: {$addToSet: "$hobbies"}}}, {$unwind:"$h"}, {$group:{_id:"$h", num_persoas: {$count:{}}}}])
+
+--59--
+db.emps.aggregate([{$match:{contrato: {$exists:true}}}, {$group:{_id:"$enderezo.provincia", total: {$sum: "$num_fillos"}}}, {$match:{total:{$gt:300}}}, {$project: {_id:0, provincia:"$_id", total:1}}]).sort({total:1})
+
+--60--
+db.emps.aggregate([{$match:{contrato: {$exists:true}}}, {$group:{_id:"$enderezo.provincia", total_fillos: {$sum: "$num_fillos"}}}, {$match:{total_fillos:{$gt:300}}}, {$project: {_id:0, provincia:"$_id", total_fillos:1}},{$sort:{total_fillos:1}}, {$skip:2}, {$limit:5}])
+
+--62--
+db.emps.aggregate([{$match:{$and:[{num_fillos:1}, {salario:{$gt:90000}}]}}, {$lookup:{from: "provincias", localField: "enderezo.provincia", foreignField: "_id", as:"provs"}}, {$unwind:"$provs"}, {$project: {_id:0, nome:1, apelidos:1, provincia:"$enderezo.provincia", comunidade:"$provs.comunidade"}}])
+
+--63--
+db.provincias.aggregate([{$match: {poboacion:{$gt:10000}}}, {$lookup:{from: "emps", localField: "_id", foreignField: "enderezo.provincia", as:"emps"}}, {$project: {_id:0, provincia:"$_id", nomes: "$emps.nome"}}])
+
+
+
+
+--Especial--
+db.emps.aggregate([
+	{$lookup:{
+		from: "provincias", localField: "enderezo.provincia", foreignField: "_id", as: "provs"
+	}},
+	{$unwind:"$provs"},
+	{$group:{
+		_id: "$enderezo.provincia", poblacion: {$first:"$provs.poboacion"}, total_fillos: {$sum:"$num_fillos"}
+	}}
+])
+
+
+
+
+
+
+
+
+
+
