@@ -1,0 +1,190 @@
+Traballo tutelado MAI       EER->ODL
+
+
+
+Class Persona (extent Personas){
+
+    attribute integer id_persona;
+    attribute string email;
+    attribute string teléfono;
+    attribute string usuario;
+    attribute string contraseña;
+    attribute struct{
+        string pila;
+        string apellido1;
+        string apellido2;
+    }nombre;
+}
+
+
+Class Alumno: Persona (extent Alumnos){
+    
+    relationship set<Edición> ediciones
+    	inverse Edición::alumnos;
+
+    relationship set<Asistencia> asistencias
+	inverse Alumno::asistencia;
+}
+
+
+Class Profesor: Persona (extent Profesores){
+    
+    attribute struct{
+        string calle;
+        integer número;
+        string piso;
+        string puerta;
+        integer cp;
+        string ciudad;
+    }dirección;
+
+
+    relationship set<Certificación> certificaciones
+      	inverse Certificación::profesor;
+
+    relationship set<Idioma> idiomas
+      	inverse Idioma::profesores;
+
+    relationship set<Sustitución> sustituciones
+      	inverse Sustitución::profesor;
+
+    relationship set<Edición> ediciones
+      	inverse Edición::profesor;
+}
+
+
+Class Idioma (extent Idiomas){
+
+    attribute integer id_idioma;
+    attribute string nombre;
+    attribute string abreviatura;
+    attribute set<string> país;
+
+
+    relationship set<Certificación> certificaciones
+      	inverse Certificación::idioma;
+
+    relationship set<Profesor> profesores
+      	inverse Profesor::idiomas;
+
+    relationship set<Curso> cursos
+      	inverse Curso::idioma;
+}
+
+
+Class Curso (extent Cursos){
+  
+    attribute integer id_curso;
+    attribute string nivel;
+    attribute string descripción;
+    attribute integer edad_mínima;
+
+
+    relationship Idioma idioma
+    	inverse Idioma::cursos;
+
+    relationship set<Edición> ediciones
+	inverse Edición::curso;
+}
+
+
+Class Certificación (extent Certificaciones){
+
+    attribute integer id_certificación;
+    attribute string nombre;
+    attribute string entidad_emisora;
+    attribute date fecha_emisión;
+
+
+    relationship Profesor profesor
+      	inverse Profesor::certificaciones;
+
+    relationship Idioma idioma
+      	inverse Idioma::certificaciones;
+}
+
+
+Class Edición (extent Ediciones){
+
+    attribute date fecha_inicio;
+    attribute date fecha_fin;
+    attribute integer aforo;
+    attribute integer días_mínimo_asistencia;
+
+
+    relationship set<Material> materiales
+      	inverse Material::ediciones;
+
+    relationship set<Alumno> alumnos
+      	inverse Alumno::ediciones;
+
+    relationship set<Asistencia> asistencias
+      	inverse Asistencia::edición;
+
+    relationship Profesor profesor
+      	inverse Profesor::ediciones;
+
+    relationship Set<Sustitución> sustituciones
+      	inverse Sustitución::edición;
+
+    relationship Curso curso
+      	inverse Curso::ediciones;
+}
+
+
+Class Sustitución (extent Sustituciones){
+
+    attribute date fecha;
+
+
+    relationship Edición edición
+	inverse Edición::sustituciones;
+
+    relationship Profesor profesor
+      	inverse Profesor::sustituciones;
+}
+
+
+Class Asistencia (extent Asistencias){
+
+    attribute dateTime instante_entrada;
+    attribute dateTime instante_salida;
+
+
+    relationship Alumno alumno
+      	inverse Alumno::asistencias;
+
+    relationship Edición edición
+      	inverse Edición::asistencias;
+}
+
+
+
+Class Material (extent Materiales){
+
+    attribute integer id_material;
+    attribute string nombre;
+    attribute string tipo_recurso;
+    attribute string url;
+    attribute string descripción;
+
+
+    relationship set<Edición> ediciones
+      inverse Edición::materiales;
+}
+
+
+Class Vídeo: Material (extent Vídeos){
+
+    attribute integer duración;
+    attribute integer bitrate;
+    attribute string codec;
+    attribute string resolución;
+}
+
+
+Class H5P: Material (extent H5Ps){
+
+    attribute string habilidad;
+    attribute string tipo_paquete;
+}
